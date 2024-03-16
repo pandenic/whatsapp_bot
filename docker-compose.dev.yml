@@ -1,0 +1,26 @@
+version: "3.10"
+
+volumes:
+  postgres:
+
+services:
+  postgres:
+    image: postgres:alpine
+    container_name: postgres_whatsapp_bot
+    restart: always
+    env_file: infra/.env.example
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_PORT=${DB_PORT}
+      - POSTGRES_HOST=localhost
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data/
+
+
+
+
+

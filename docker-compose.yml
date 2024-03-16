@@ -1,0 +1,51 @@
+version: "3.10"
+
+volumes:
+  postgres:
+
+services:
+  postgres:
+    image: postgres:alpine
+    container_name: postgres_whatsapp_bot
+    restart: always
+    env_file: infra/.env.example
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_PORT=${DB_PORT}
+      - POSTGRES_HOST=localhost
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data/
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  whatsapp_bot:
+    restart: always
+    container_name: bot_whatsapp_bot
+    build:
+      context: ./
+      dockerfile: infra/fast_api.Dockerfile
+    env_file: .env
+    ports:
+      - "80:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok_whatsapp_bot
+    command: http http://host.docker.internal:${APP_PORT:-8000}
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:-token}
+    ports:
+      - "${NGROK_PORT:-4040}:4040"
+
+
+
