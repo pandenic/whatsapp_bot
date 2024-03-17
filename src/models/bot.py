@@ -29,7 +29,7 @@ class BotUser(AsyncAttrs, Base):
 
     phone_number: Mapped[str]
     reminders: Mapped[Optional["Reminder"]] = relationship(backref="bot_user")
-    # selector_status: Mapped[Selector] = mapped_column(default=Selector.greeting)
+    # selector_status: Mapped[Selector] = mapped_column(default=Selector.greeting) # noqa
 
 
 class Reminder(AsyncAttrs, Base):
@@ -39,4 +39,4 @@ class Reminder(AsyncAttrs, Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     remind_at: Mapped[datetime]
     is_reminded: Mapped[bool] = mapped_column(default=False)
-    # repeat_interval: Mapped[RepeatInterval] = mapped_column(default=RepeatInterval.non_repeat)
+    # repeat_interval: Mapped[RepeatInterval] = mapped_column(default=RepeatInterval.non_repeat) # noqa
