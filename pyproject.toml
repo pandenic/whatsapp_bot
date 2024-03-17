@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "whatsapp-bot"
+version = "0.1.0"
+description = ""
+authors = ["Denis <panasenkodf@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+twilio = "^9.0.2"
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.28"}
+pydantic-settings = "^2.2.1"
+alembic = "^1.13.1"
+pydantic = "^2.6.4"
+asyncpg = "^0.29.0"
+fastapi = "^0.110.0"
+uvicorn = {extras = ["standard"], version = "^0.28.0"}
+ngrok = "^1.2.0"
+python-multipart = "^0.0.9"
+
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^7.0.0"
+pep8-naming = "^0.13.3"
+flake8-broken-line = "^1.0.0"
+flake8-return = "^1.2.0"
+flake8-isort = "^6.1.1"
+flake8-commas = "^2.1.0"
+flake8-print = "^5.0.0"
+flake8-comments = "^0.1.2"
+flake8-docstrings = "^1.7.0"
+black = "^24.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
