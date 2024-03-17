@@ -1,8 +1,7 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Annotated
+from typing import Annotated, Optional
 
-from pydantic_extra_types.phone_numbers import PhoneNumber
 from sqlalchemy import UUID, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,16 +10,26 @@ from src.core.database import Base
 
 
 class RepeatInterval(Enum):
-    everyday = Annotated[str, "Каждый день"]
-    every_week = Annotated[str, "Каждую неделю"]
-    every_month = Annotated[str, "Каждый месяц"]
-    every_year = Annotated[str, "Каждый год"]
+    non_repeat = Annotated[str, "Non-repeatable"]
+    everyday = Annotated[str, "Everyday"]
+    every_week = Annotated[str, "Every week"]
+    every_month = Annotated[str, "Every month"]
+    every_year = Annotated[str, "Every year"]
+
+
+class Selector(Enum):
+    greeting = Annotated[str, "Greeting"]
+    create_reminder = Annotated[str, "Create reminder"]
+    show_active_reminders = Annotated[str, "Show active reminders"]
+    delete_reminder = Annotated[str, "Delete reminder"]
+    creat_repeatable_reminder = Annotated[str, "Create repeatable reminder"]
 
 
 class BotUser(AsyncAttrs, Base):
 
     phone_number: Mapped[str]
     reminders: Mapped[Optional["Reminder"]] = relationship(backref="bot_user")
+    selector_status: Mapped[Selector] = mapped_column(default=Selector.greeting)
 
 
 class Reminder(AsyncAttrs, Base):
@@ -30,3 +39,4 @@ class Reminder(AsyncAttrs, Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     remind_at: Mapped[datetime]
     is_reminded: Mapped[bool] = mapped_column(default=False)
+    repeat_interval: Mapped[RepeatInterval] = mapped_column(default=RepeatInterval.non_repeat)

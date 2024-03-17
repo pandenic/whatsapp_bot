@@ -1,33 +1,26 @@
 from datetime import datetime
-from typing import TypeVar, Generic, Type, List
+from typing import Generic, List, Type, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.database import Base, AsyncSessionLocal
+from src.core.database import Base
 from src.models import BotUser, Reminder
 
-ModelType = TypeVar('ModelType', bound=Base)
-CreateSchemaType = TypeVar('CreateSchemaType', bound=BaseModel)
-UpdateSchemaType = TypeVar('UpdateSchemaType', bound=BaseModel)
+ModelType = TypeVar("ModelType", bound=Base)
+CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
+UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
-class CRUDBase(Generic[
-    ModelType,
-    CreateSchemaType,
-    UpdateSchemaType
-]):
-    def __init__(
-            self,
-            model: Type[ModelType]
-    ):
+class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
+    def __init__(self, model: Type[ModelType]):
         self.model = model
 
     async def create(
-            self,
-            session: AsyncSession,
-            obj_in: dict[str, str],
+        self,
+        session: AsyncSession,
+        obj_in: dict[str, str],
     ) -> ModelType:
         new_obj = self.model(**obj_in)
         session.add(new_obj)
@@ -36,28 +29,22 @@ class CRUDBase(Generic[
         return new_obj
 
 
-class CRUDBotUser(CRUDBase[
-    ModelType,
-    CreateSchemaType,
-    UpdateSchemaType
-]):
+class CRUDBotUser(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     async def get_by_phone_number(
-            self,
-            session: AsyncSession,
-            phone_number: str,
+        self,
+        session: AsyncSession,
+        phone_number: str,
     ):
         db_obj = await session.execute(
-            select(self.model).where(
-                self.model.phone_number == phone_number
-            )
+            select(self.model).where(self.model.phone_number == phone_number)
         )
         return db_obj.scalars().first()
 
     async def get_or_create_by_phone_number(
-            self,
-            session: AsyncSession,
-            phone_number: str,
+        self,
+        session: AsyncSession,
+        phone_number: str,
     ):
         bot_user = await self.get_by_phone_number(
             session=session,
@@ -71,30 +58,24 @@ class CRUDBotUser(CRUDBase[
         )
 
 
-class CRUDReminder(CRUDBase[
-    ModelType,
-    CreateSchemaType,
-    UpdateSchemaType
-]):
+class CRUDReminder(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def get_current_unsent_reminders_now(
-            self,
-            session: AsyncSession,
-            time_now: datetime,
+        self,
+        session: AsyncSession,
+        time_now: datetime,
     ) -> List[ModelType]:
         time_without_seconds = time_now.replace(second=0, microsecond=0)
         db_objs = await session.execute(
-            select(self.model).where(
-                self.model.remind_at == time_without_seconds
-            ).where(
-                self.model.is_reminded == False
-            )
+            select(self.model)
+            .where(self.model.remind_at == time_without_seconds)
+            .where(self.model.is_reminded == False) # noqa
         )
         return db_objs.scalars().all()
 
     async def commit_and_refresh(
-            self,
-            db_obj,
-            session: AsyncSession,
+        self,
+        db_obj,
+        session: AsyncSession,
     ) -> ModelType:
         session.add(db_obj)
         await session.commit()

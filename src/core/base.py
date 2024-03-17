@@ -1,3 +1,2 @@
-from src.core.database import Base
-from src.models import BotUser
-from src.models import Reminder
+from src.core.database import Base  # noqa
+from src.models import BotUser, Reminder  # noqa
