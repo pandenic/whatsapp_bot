@@ -1,4 +1,4 @@
-![image](https://github.com/pandenic/whatsapp_bot/assets/114985447/3f9b87fa-68f0-487b-a3a2-2ab353d4b0fc)# Описание
+# Описание
 Сервис представляет собой WhatsApp бота для управления напоминаниями. На текущий момент реализовано:
 1. Создание напоминаний
 
@@ -17,17 +17,19 @@
 1. Получить `Twilio Auth Token` и `Twilio SID`. Для этого нужно зарегистрироваться на 
 [twilio.com](https://www.twilio.com) и перейти на страницу 
 [console](https://www.twilio.com/console). Они будут тут:
+
 ![image](https://github.com/pandenic/whatsapp_bot/assets/114985447/8ecd28dd-ed2f-45d7-9ff6-b88b5f00bb55)
 
 
 
-2. Получить `Ngrok Auth Token`. Для этого нужно зарегистрироваться на [ngrok.com](https://ngrok.com/).
+3. Получить `Ngrok Auth Token`. Для этого нужно зарегистрироваться на [ngrok.com](https://ngrok.com/).
 Затем перейти на [dashboard](https://dashboard.ngrok.com/get-started/your-authtoken). Он будет тут:
+
 ![image](https://github.com/pandenic/whatsapp_bot/assets/114985447/d747046c-3979-4065-a099-6a3bde349d80)
 
 
 
-3. Установить ngrok: [инструкция](https://ngrok.com/docs/getting-started/).
+5. Установить ngrok: [инструкция](https://ngrok.com/docs/getting-started/).
 На Ubuntu:
 ```bash
 sudo apt install ngrok
@@ -78,11 +80,15 @@ ngrok http 8000
 ```
 
 10. Скопировать `endpoint` с [dashboard ngrok](https://dashboard.ngrok.com/cloud-edge/endpoints).
-Он будет тут: ![image](https://github.com/pandenic/whatsapp_bot/assets/114985447/b360fa6b-eb59-4e06-9203-701e6b04e0e7)
+Он будет тут:
+
+ ![image](https://github.com/pandenic/whatsapp_bot/assets/114985447/b360fa6b-eb59-4e06-9203-701e6b04e0e7)
 
 
-11. Вставить его на [twilio](https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn)
-вкладке `sandbox settings` и добавить `/api/v1/bot/chat` в конце к `endpoint`. Вот так: ![image](https://github.com/pandenic/whatsapp_bot/assets/114985447/cb25d6dc-02b7-46e2-a486-556564a8e1a6)
+12. Вставить его на [twilio](https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn)
+вкладке `sandbox settings` и добавить `/api/v1/bot/chat` в конце к `endpoint`. Вот так:
+
+ ![image](https://github.com/pandenic/whatsapp_bot/assets/114985447/cb25d6dc-02b7-46e2-a486-556564a8e1a6)
 
 
 Всё готово!
