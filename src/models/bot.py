@@ -3,7 +3,8 @@ from enum import Enum
 from typing import Optional, Annotated
 
 from pydantic_extra_types.phone_numbers import PhoneNumber
-from sqlalchemy import UUID, ForeignKey, Text
+from sqlalchemy import UUID, ForeignKey
+from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -16,17 +17,16 @@ class RepeatInterval(Enum):
     every_year = Annotated[str, "Каждый год"]
 
 
-class BotUser(Base):
+class BotUser(AsyncAttrs, Base):
 
     phone_number: Mapped[str]
-    reminders: Mapped[Optional["Reminder"]] = relationship(back_populates="bot_user")
+    reminders: Mapped[Optional["Reminder"]] = relationship(backref="bot_user")
 
 
-class Reminder(Base):
+class Reminder(AsyncAttrs, Base):
 
     bot_user_id: Mapped[UUID] = mapped_column(ForeignKey("botuser.id"))
-    bot_user: Mapped[BotUser] = relationship(back_populates="reminders")
     text: Mapped[Optional[str]]
-    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     remind_at: Mapped[datetime]
-    repeat_interval: Mapped[Optional[RepeatInterval]]
+    is_reminded: Mapped[bool] = mapped_column(default=False)

@@ -1,8 +1,8 @@
-"""Initial migration
+"""Initial migration.
 
-Revision ID: b9e695665c3f
+Revision ID: 6a4295545b84
 Revises: 
-Create Date: 2024-03-16 11:55:14.211724
+Create Date: 2024-03-16 23:56:44.718150
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b9e695665c3f'
+revision: str = '6a4295545b84'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -32,6 +32,7 @@ def upgrade() -> None:
     sa.Column('remind_at', sa.DateTime(), nullable=False),
     sa.Column('repeat_interval', sa.Enum('everyday', 'every_week', 'every_month', 'every_year', name='repeatinterval'), nullable=True),
     sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('is_reminded', sa.Boolean),
     sa.ForeignKeyConstraint(['bot_user_id'], ['botuser.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
