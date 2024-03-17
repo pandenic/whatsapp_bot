@@ -69,23 +69,28 @@ poetry shell
 docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-8. Запустить `uvicorn` сервер:
+8. Выполнить миграции:
+```bash
+alembic upgrade head
+```
+
+9. Запустить `uvicorn` сервер:
 ```bash
 uvicorn src.main:app
 ```
 
-9. Запустить `ngrok` в отдельной консоли в интерактивном режиме:
+10. Запустить `ngrok` в отдельной консоли в интерактивном режиме:
 ```bash
 ngrok http 8000
 ```
 
-10. Скопировать `endpoint` с [dashboard ngrok](https://dashboard.ngrok.com/cloud-edge/endpoints).
+11. Скопировать `endpoint` с [dashboard ngrok](https://dashboard.ngrok.com/cloud-edge/endpoints).
 Он будет тут:
 
  ![image](https://github.com/pandenic/whatsapp_bot/assets/114985447/b360fa6b-eb59-4e06-9203-701e6b04e0e7)
 
 
-12. Вставить его на [twilio](https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn)
+13. Вставить его на [twilio](https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn)
 вкладке `sandbox settings` и добавить `/api/v1/bot/chat` в конце к `endpoint`. Вот так:
 
  ![image](https://github.com/pandenic/whatsapp_bot/assets/114985447/cb25d6dc-02b7-46e2-a486-556564a8e1a6)
