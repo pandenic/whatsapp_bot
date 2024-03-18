@@ -1,96 +1,190 @@
-import asyncio
-import logging
-import re
+from functools import partial
 from datetime import datetime
-from typing import List
+from typing import List, Annotated
 
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, Form
+from sqlalchemy.ext.asyncio import AsyncSession
 from twilio.rest import Client
 
+from src.bot.validators import validate_create_reminder_command, validate_selector_choice, \
+    validate_reminder_delete_number, validate_reminder_number_is_exist, validate_create_repeatable_reminder_command
 from src.core.config import settings
 from src.core.database import AsyncSessionLocal
-from src.core.exceptions import (WrongBotDateFormat,
-                                 WrongBotReminderCreateFormat,
-                                 WrongBotTimeFormat)
-from src.core.regex_patterns import RegexPatterns
-from src.crud import crud_reminder
+from src.core import exceptions as e
+from src.core.constants import RegexPatterns, Selector, RepeatInterval
+from src.crud import crud_reminder, crud_bot_user
 from src.models import BotUser
 
-account_sid = settings.twilio_account_sid
-auth_token = settings.twilio_auth_token
-client = Client(account_sid, auth_token)
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+async def update_selector_to(
+        bot_user: BotUser,
+        session: AsyncSession,
+        selector: Selector,
+) -> None:
+    bot_user.selector_status = selector
+    await crud_reminder.commit_and_refresh(bot_user, session)
 
 
-async def send_message(to_number, body_text):
-    try:
-        message = client.messages.create(
-            from_=f"whatsapp:{settings.whatsapp_sender}",
-            body=body_text,
-            to=f"whatsapp:{to_number}",
+async def greeting() -> str:
+    return (f"You can choose commands:\n\n"
+           f"{Selector.get_numbered_str(1)}.\n\nJust write a number.\n"
+           f"If you want to get back to menu, just write 'Menu'")
+
+
+async def create_new_reminder(
+        bot_user: BotUser,
+        body_text: str,
+        session: AsyncSession,
+        is_start: bool
+) -> str:
+    if is_start:
+        return ("You can create a reminder using format:\n"
+                "HH:MM dd.mm.YYYY any text\n\n"
+                "Example:\n"
+                "20:15 01.01.2025 drop table;")
+    reminder_text_list = body_text.split(" ")
+    message = await validate_create_reminder_command(
+        reminder_text_list,
+    )
+    if message:
+        return message
+
+    time_and_date = " ".join(reminder_text_list[0:2])
+    text = " ".join(reminder_text_list[2:])
+    remind_at = datetime.strptime(time_and_date, "%H:%M %d.%m.%Y")
+    reminder = await crud_reminder.create(
+        session=session,
+        obj_in={
+            "remind_at": remind_at,
+            "text": text,
+            "bot_user_id": bot_user.id,
+        },
+    )
+
+    return (f"Reminder:\n{reminder.text}\nsaved.\n"
+            f"You will be notified at:\n{reminder.remind_at}.\n")
+
+
+async def show_active_reminder(
+        bot_user: BotUser,
+        session: AsyncSession,
+        is_start: bool,
+) -> str:
+    reminders = bot_user.reminders
+    reminders_numbered_list = "\n".join(
+        [str(i) + ": " + str(reminder.remind_at) + " " + reminder.text
+         for i, reminder in enumerate(reminders)]
+    )
+    if is_start:
+        await update_selector_to(
+            bot_user, session, Selector.GREETING,
         )
-        logger.info(f"Message sent to {to_number}: {message.body}")
-    except Exception as e:
-        logger.error(f"Error sending message to {to_number}: {e}")
+    return (f'Your active reminders:\n\n'
+            f'{reminders_numbered_list}')
 
 
-async def background_reminder():
-    while True:
-        now = datetime.now()
-        if now.second == 0:
-            reminders = []
-            async with AsyncSessionLocal() as session:
-                reminders = (
-                    await crud_reminder.get_current_unsent_reminders_now(
-                        session=session,
-                        time_now=now,
-                    )
-                )
-                for reminder in reminders:
-                    reminder.is_reminded = True
-                    await crud_reminder.commit_and_refresh(reminder, session)
-                    bot_user = await session.run_sync(
-                        lambda session: reminder.bot_user
-                    )
-                    message = f"Kindly remind:\n{reminder.text}"
-                    await asyncio.create_task(
-                        send_message(bot_user.phone_number, message)
-                    )
-            print(now)
-        await asyncio.sleep(1)
-
-
-def validate_create_reminder_command(
-    reminder_text_list: List[str],
-    bot_user: BotUser,
-    background_task: BackgroundTasks,
-):
-
-    try:
-        if len(reminder_text_list) < 3:
-            raise WrongBotReminderCreateFormat(
-                "Wrong reminder format.\n" "Pattern HH:MM dd.mm.YYYY text"
-            )
-        if not re.match(RegexPatterns.BOT_TIME, reminder_text_list[0]):
-            raise WrongBotTimeFormat(
-                "Wrong time.\nPattern HH:MM.\n" "From 0:00 to 23:59."
-            )
-        if not re.match(RegexPatterns.BOT_DATE, reminder_text_list[1]):
-            raise WrongBotDateFormat(
-                "Wrong date.\nPattern dd.mm.YYYY.\n"
-                "From 01.01.1600 to 31.12.9999."
-            )
-    except (
-        WrongBotReminderCreateFormat,
-        WrongBotTimeFormat,
-        WrongBotDateFormat,
-    ) as error:
-        background_task.add_task(
-            send_message,
-            bot_user.phone_number,
-            error,
+async def delete_reminder(
+        bot_user: BotUser,
+        body_text: str,
+        session: AsyncSession,
+        is_start: bool,
+) -> str:
+    if is_start:
+        message = "Choose reminder to delete.\nJust write a number.\n\n"
+        message += await show_active_reminder(
+            bot_user, session, is_start=False,
         )
-        return False
-    return True
+        return message
+
+    message = await validate_reminder_delete_number(body_text)
+    if message:
+        return message
+    number = int(body_text)
+    reminders = bot_user.reminders
+    message = await validate_reminder_number_is_exist(number, len(reminders))
+    if message:
+        return message
+    await crud_reminder.remove(reminders[number], session)
+    reminders.pop(number)
+    reminders_numbered_list = "\n".join(
+        [str(i) + ": " + str(reminder.remind_at) + " " + reminder.text
+         for i, reminder in enumerate(reminders)]
+    )
+    message = (f"Successfully deleted.\n\n"
+               f"You're active reminders:\n\n"
+               f"{reminders_numbered_list}")
+    return message
+
+
+async def create_repeatable_reminder(
+        bot_user: BotUser,
+        body_text: str,
+        session: AsyncSession,
+        is_start: bool
+) -> str:
+    if is_start:
+        return (f"You can choose a repetition by code:\n\n"
+                f"{RepeatInterval.get_numbered_str()}\n\n"
+                f"You can create a reminder using format:\n"
+                f"[repeat_code] HH:MM dd.mm.YYYY any text\n"
+                f"Example:\n0 20:15 01.01.2025 drop table;"
+        )
+    reminder_text_list = body_text.split(" ")
+    message = await validate_create_repeatable_reminder_command(
+        reminder_text_list, len(RepeatInterval.get_list())
+    )
+    if message:
+        return message
+
+    time_and_date = " ".join(reminder_text_list[1:3])
+    text = " ".join(reminder_text_list[3:])
+    remind_at = datetime.strptime(time_and_date, "%H:%M %d.%m.%Y")
+    repeat_interval = RepeatInterval.get_list()[int(reminder_text_list[0])]
+    reminder = await crud_reminder.create(
+        session=session,
+        obj_in={
+            "remind_at": remind_at,
+            "text": text,
+            "bot_user_id": bot_user.id,
+            "repeat_interval": repeat_interval,
+        },
+    )
+
+    return (f"Reminder:\n{reminder.text}\nsaved.\n"
+            f"You will be notified at:\n{reminder.remind_at}.\n\n"
+            f"It will be repeated {repeat_interval.value.lower()}")
+
+
+async def main_selector(
+        bot_user: BotUser,
+        body_text: str,
+        session: AsyncSession,
+) -> str:
+    is_start = False
+    if body_text == "Menu":
+        await update_selector_to(
+            bot_user, session, Selector.GREETING,
+        )
+        return await greeting()
+    if bot_user.selector_status == Selector.GREETING:
+        message = await validate_selector_choice(body_text)
+        if message:
+            return message
+        is_start = True
+        await update_selector_to(
+            bot_user, session, Selector.get_list()[int(body_text)],
+        )
+
+    selector_dict = {
+        Selector.GREETING: greeting(),
+        Selector.CREATE_REMINDER: create_new_reminder(
+            bot_user, body_text, session, is_start),
+        Selector.SHOW_ACTIVE_REMINDERS: show_active_reminder(
+            bot_user, session, is_start),
+        Selector.DELETE_REMINDER: delete_reminder(
+            bot_user, body_text, session, is_start),
+        Selector.CREATE_REPEATABLE_REMINDER: create_repeatable_reminder(
+            bot_user, body_text, session, is_start),
+    }
+
+    return await selector_dict[bot_user.selector_status]

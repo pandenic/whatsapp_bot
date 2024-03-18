@@ -28,6 +28,25 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await session.refresh(new_obj)
         return new_obj
 
+    async def remove(
+            self,
+            db_obj,
+            session: AsyncSession,
+    ) -> ModelType:
+        await session.delete(db_obj)
+        await session.commit()
+        return db_obj
+
+    async def commit_and_refresh(
+        self,
+        db_obj,
+        session: AsyncSession,
+    ) -> ModelType:
+        session.add(db_obj)
+        await session.commit()
+        await session.refresh(db_obj)
+        return db_obj
+
 
 class CRUDBotUser(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
 
@@ -57,6 +76,19 @@ class CRUDBotUser(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
             obj_in={"phone_number": phone_number},
         )
 
+    async def get_unsent_reminders(
+            self,
+            session: AsyncSession,
+            bot_user: BotUser,
+    ):
+        reminders = await session.run_sync(
+            lambda session: bot_user.reminders
+        )
+        if not reminders:
+            return []
+        now = datetime.now()
+        return [reminder for reminder in reminders if reminder.remind_at > now]
+
 
 class CRUDReminder(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def get_current_unsent_reminders_now(
@@ -71,16 +103,6 @@ class CRUDReminder(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
             .where(self.model.is_reminded == False) # noqa
         )
         return db_objs.scalars().all()
-
-    async def commit_and_refresh(
-        self,
-        db_obj,
-        session: AsyncSession,
-    ) -> ModelType:
-        session.add(db_obj)
-        await session.commit()
-        await session.refresh(db_obj)
-        return db_obj
 
 
 crud_reminder = CRUDReminder(Reminder)

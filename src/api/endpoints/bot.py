@@ -4,7 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.bot.bot import send_message, validate_create_reminder_command
+from src.bot.bot import main_selector
+from src.bot.engine import send_message
+from src.bot.validators import validate_create_reminder_command
 from src.core.database import get_async_session
 from src.crud import crud_bot_user, crud_reminder
 
@@ -25,27 +27,12 @@ async def chat(
         phone_number=phone_number,
     )
 
-    reminder_text_list = Body.split(" ")
-    if not validate_create_reminder_command(
-        reminder_text_list, bot_user, background_task
-    ):
-        return
-
-    time_and_date = " ".join(reminder_text_list[0:2])
-    text = " ".join(reminder_text_list[2:])
-    remind_at = datetime.strptime(time_and_date, "%H:%M %d.%m.%Y")
-    reminder = await crud_reminder.create(
-        session=session,
-        obj_in={
-            "remind_at": remind_at,
-            "text": text,
-            "bot_user_id": bot_user.id,
-        },
+    message = await main_selector(
+        bot_user, Body, session,
     )
 
     background_task.add_task(
         send_message,
         bot_user.phone_number,
-        f"Reminder:\n{reminder.text}\nsaved.\n"
-        f"You will be notified at:\n{reminder.remind_at}.",
+        message,
     )

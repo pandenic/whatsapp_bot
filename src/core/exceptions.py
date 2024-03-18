@@ -11,3 +11,13 @@ class WrongBotDateFormat(Exception):
 class WrongBotReminderCreateFormat(Exception):
 
     pass
+
+
+class WrongSelectorValue(Exception):
+
+    pass
+
+
+class WrongReminderNumber(Exception):
+
+    pass
