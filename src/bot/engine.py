@@ -59,9 +59,7 @@ async def background_reminder():
                     elif reminder.repeat_interval == RepeatInterval.EVERY_YEAR:
                         reminder.remind_at += relativedelta(years=1)
                     await crud_reminder.commit_and_refresh(reminder, session)
-                    bot_user = await session.run_sync(
-                        lambda session: reminder.bot_user,
-                    )
+                    bot_user = reminder.bot_user
                     message = f"Kindly remind:\n{reminder.text}"
                     await asyncio.create_task(
                         send_message(bot_user.phone_number, message),

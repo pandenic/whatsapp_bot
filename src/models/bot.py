@@ -20,7 +20,7 @@ class BotUser(Base):
 
     phone_number: Mapped[str]
     reminders: Mapped[Optional[List["Reminder"]]] = relationship(
-        backref="bot_user", lazy="joined",
+        back_populates="bot_user", lazy="selectin",
     )
     selector_status: Mapped[Selector] = mapped_column(
         default=Selector.GREETING,
@@ -40,6 +40,7 @@ class Reminder(Base):
     """
 
     bot_user_id: Mapped[UUID] = mapped_column(ForeignKey("botuser.id"))
+    bot_user: Mapped["BotUser"] = relationship(back_populates="reminders", lazy="selectin")
     text: Mapped[Optional[str]]
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     remind_at: Mapped[datetime]
