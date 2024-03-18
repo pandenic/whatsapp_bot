@@ -1,3 +1,4 @@
+"""Entrypoint where everything starts."""
 import asyncio
 
 from fastapi import FastAPI
@@ -13,4 +14,5 @@ app.include_router(main_router, prefix="/api/v1")
 
 @app.on_event("startup")
 async def startup_event():
+    """Define actions on startup of a fastapi app."""
     asyncio.create_task(background_reminder())

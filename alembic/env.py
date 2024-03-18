@@ -1,3 +1,4 @@
+"""alembic env file."""
 import asyncio
 import os
 from logging.config import fileConfig

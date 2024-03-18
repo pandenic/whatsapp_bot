@@ -1,3 +1,4 @@
+"""Define classes for CRUD operations with models."""
 from datetime import datetime
 from typing import Generic, List, Type, TypeVar
 
@@ -14,7 +15,10 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
 class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
+    """Define CRUD operations as superclass."""
+
     def __init__(self, model: Type[ModelType]):
+        """Init for CRUDBase class."""
         self.model = model
 
     async def create(
@@ -22,6 +26,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         session: AsyncSession,
         obj_in: dict[str, str],
     ) -> ModelType:
+        """Create a new object in DB."""
         new_obj = self.model(**obj_in)
         session.add(new_obj)
         await session.commit()
@@ -29,10 +34,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return new_obj
 
     async def remove(
-            self,
-            db_obj,
-            session: AsyncSession,
+        self,
+        db_obj,
+        session: AsyncSession,
     ) -> ModelType:
+        """Remove an object from DB."""
         await session.delete(db_obj)
         await session.commit()
         return db_obj
@@ -42,6 +48,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db_obj,
         session: AsyncSession,
     ) -> ModelType:
+        """Commit to DB and refresh values."""
         session.add(db_obj)
         await session.commit()
         await session.refresh(db_obj)
@@ -49,14 +56,16 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
 
 class CRUDBotUser(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
+    """Define CRUD operations for a bot user model."""
 
     async def get_by_phone_number(
         self,
         session: AsyncSession,
         phone_number: str,
     ):
+        """Return user object by phone number."""
         db_obj = await session.execute(
-            select(self.model).where(self.model.phone_number == phone_number)
+            select(self.model).where(self.model.phone_number == phone_number),
         )
         return db_obj.scalars().first()
 
@@ -65,6 +74,11 @@ class CRUDBotUser(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
         session: AsyncSession,
         phone_number: str,
     ):
+        """
+        Create a new user if they use a bot for the first time.
+
+        Or return existed.
+        """
         bot_user = await self.get_by_phone_number(
             session=session,
             phone_number=phone_number,
@@ -77,13 +91,12 @@ class CRUDBotUser(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
         )
 
     async def get_unsent_reminders(
-            self,
-            session: AsyncSession,
-            bot_user: BotUser,
+        self,
+        session: AsyncSession,
+        bot_user: BotUser,
     ):
-        reminders = await session.run_sync(
-            lambda session: bot_user.reminders
-        )
+        """Return all reminders that are going to be sent in the future."""
+        reminders = await session.run_sync(lambda session: bot_user.reminders)
         if not reminders:
             return []
         now = datetime.now()
@@ -91,16 +104,19 @@ class CRUDBotUser(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
 
 
 class CRUDReminder(CRUDBase[ModelType, CreateSchemaType, UpdateSchemaType]):
+    """Define CRUD operations for a reminder model."""
+
     async def get_current_unsent_reminders_now(
         self,
         session: AsyncSession,
         time_now: datetime,
     ) -> List[ModelType]:
+        """Return unsent reminder at a current minute only."""
         time_without_seconds = time_now.replace(second=0, microsecond=0)
         db_objs = await session.execute(
             select(self.model)
             .where(self.model.remind_at == time_without_seconds)
-            .where(self.model.is_reminded == False) # noqa
+            .where(self.model.is_reminded == False)  # noqa
         )
         return db_objs.scalars().all()
 

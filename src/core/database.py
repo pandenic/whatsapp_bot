@@ -12,6 +12,7 @@ from src.core.config import settings
 
 
 class PreBase:
+    """Field and settings for Base model."""
 
     @declared_attr
     def __tablename__(cls):  # noqa
@@ -26,7 +27,7 @@ Base = declarative_base(cls=PreBase)
 engine = create_async_engine(settings.postgres_connection_url)
 
 AsyncSessionLocal = async_sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
+    engine, class_=AsyncSession, expire_on_commit=False,
 )
 
 

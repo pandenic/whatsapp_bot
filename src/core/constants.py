@@ -1,19 +1,28 @@
+"""Define constants for a project."""
 import enum
-from typing import Annotated
 
 
 class ExtendedEnum(enum.Enum):
+    """Extend Enum class."""
 
     @classmethod
     def get_list(cls):
+        """Return a list of Enum's entities."""
         return [value for value in cls]
 
     @classmethod
     def get_numbered_str(cls, start=0):
-        return "\n".join([str(i) + ": " + value.value for i, value in enumerate(cls)][start:])
+        """Return a numbered list of Enum's values."""
+        return "\n".join(
+            [str(i) + ": " + value.value for i, value in enumerate(cls)][
+                start:
+            ],
+        )
 
 
 class RepeatInterval(ExtendedEnum):
+    """Define choices for reminders' repeat interval."""
+
     NON_REPEAT = "Non-repeatable"
     EVERYDAY = "Everyday"
     EVERY_WEEK = "Every week"
@@ -22,13 +31,18 @@ class RepeatInterval(ExtendedEnum):
 
 
 class Selector(ExtendedEnum):
+    """Define choices for a menu selector."""
+
     GREETING = "Greeting"
     CREATE_REMINDER = "Create reminder"
     SHOW_ACTIVE_REMINDERS = "Show active reminders"
     DELETE_REMINDER = "Delete reminder"
     CREATE_REPEATABLE_REMINDER = "Create repeatable reminder"
 
+
 class RegexPatterns:
+    """Define regex patterns for validation."""
+
     BOT_TIME = r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
     BOT_DATE = (
         r"^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|"
