@@ -5,6 +5,8 @@
 3. Удаление напоминания
 4. Создание повторяющихся напомимнаний
 
+Демонстрация работы: https://drive.google.com/file/d/1L2me2qgiuW-dTE7QEqDmhOBIgVOuplB3/view?usp=sharing
+
 # Технологии
 - Poetry
 - FastAPI
